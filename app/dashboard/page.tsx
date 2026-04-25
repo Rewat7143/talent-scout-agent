@@ -271,13 +271,13 @@ export default function Dashboard() {
   };
 
   const exportCSV = () => {
-    const headers = ['Rank','Name','Title','Experience (yr)','Location','Availability','Match Score','Interest Score','Combined Score','Matching Skills','Missing Skills','GitHub URL','Source'];
+    const headers = ['Rank','Name','Title','Experience (yr)','Location','Availability','Match Score','Interest Score','Combined Score','Matching Skills','Missing Skills','GitHub URL','LinkedIn URL','Source'];
     const rows = filteredMatches.map(m => [
       m.rank, m.candidate_name, m.candidate_title, m.candidate_experience,
       m.candidate_location, m.candidate_availability,
       m.match_score, m.interest_score ?? '', m.combined_score ?? '',
       m.matching_skills.join('; '), m.missing_skills.join('; '),
-      (m as any).github_url || '', m.source || dataSource,
+      (m as any).github_url || '', (m as any).linkedin_url || '', m.source || dataSource,
     ]);
     const csv = [headers, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -676,6 +676,10 @@ export default function Dashboard() {
                       {(selectedCandidate as any).github_url && (
                         <a href={(selectedCandidate as any).github_url} target="_blank" rel="noopener noreferrer"
                           style={{ marginLeft: 8, fontSize: 14, color: 'var(--accent-light)', textDecoration: 'none' }}>↗ GitHub</a>
+                      )}
+                      {(selectedCandidate as any).linkedin_url && (
+                        <a href={(selectedCandidate as any).linkedin_url} target="_blank" rel="noopener noreferrer"
+                          style={{ marginLeft: 8, fontSize: 14, color: '#0077b5', textDecoration: 'none' }}>↗ LinkedIn</a>
                       )}
                     </h2>
                     <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>

@@ -76,6 +76,7 @@ interface CandidateInput {
   availability: string;
   avatar_url?: string;
   github_url?: string;
+  linkedin_url?: string;
   followers?: number;
   repos_count?: number;
   top_repos?: { name: string; language: string; stars: number; url: string }[];
@@ -109,6 +110,7 @@ function scoreCandidate(candidate: CandidateInput, parsedJD: ParsedJD, jdText: s
     avatar_color: candidate.avatar_color,
     avatar_url: candidate.avatar_url || null,
     github_url: candidate.github_url || null,
+    linkedin_url: candidate.linkedin_url || `https://linkedin.com/in/${candidate.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
     followers: candidate.followers || null,
     repos_count: candidate.repos_count || null,
     top_repos: candidate.top_repos || null,

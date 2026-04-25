@@ -21,6 +21,7 @@ export interface MatchResult {
   avatar_color: string;
   avatar_url: string | null;
   github_url: string | null;
+  linkedin_url: string | null;
   followers: number | null;
   repos_count: number | null;
   top_repos: { name: string; language: string; stars: number; url: string }[] | null;
