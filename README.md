@@ -35,7 +35,7 @@
 
 ```bash
 # 1. Clone
-git clone https://github.com/YOUR_REPO/talent-scout-agent.git
+git clone https://github.com/Rewat7143/talent-scout-agent.git
 cd talent-scout-agent
 
 # 2. Install

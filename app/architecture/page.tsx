@@ -11,7 +11,7 @@ export default function Architecture() {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <a href="YOUR_DEMO_URL_HERE" target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm">🌐 Live Demo</a>
-            <a href="https://github.com/YOUR_REPO" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">📦 GitHub Repo</a>
+            <a href="https://github.com/Rewat7143/talent-scout-agent" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">📦 GitHub Repo</a>
           </div>
         </div>
 
