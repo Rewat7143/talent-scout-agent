@@ -11,8 +11,8 @@ function ScoreCircle({ score, color, size = 48 }: { score: number; color: string
   return (
     <div className="score-circle" style={{ width: size, height: size }}>
       <svg width={size} height={size}>
-        <circle cx={size/2} cy={size/2} r={r} className="score-circle-bg" />
-        <circle cx={size/2} cy={size/2} r={r} className="score-circle-fill"
+        <circle cx={size / 2} cy={size / 2} r={r} className="score-circle-bg" />
+        <circle cx={size / 2} cy={size / 2} r={r} className="score-circle-fill"
           style={{ stroke: color, strokeDasharray: circ, strokeDashoffset: offset }} />
       </svg>
       <span className="score-circle-text" style={{ fontSize: size * 0.26 }}>{score}</span>
@@ -27,29 +27,29 @@ function ScatterPlot({ matches, onSelect }: { matches: MatchResult[]; onSelect: 
       <span className="scatter-axis-label scatter-x-label">Match Score →</span>
       <span className="scatter-axis-label scatter-y-label">{hasOutreach ? 'Interest Score →' : 'Candidates (run outreach to plot Y-axis) →'}</span>
       {/* Grid lines */}
-      {[20,40,60,80].map(v => (
+      {[20, 40, 60, 80].map(v => (
         <div key={`h${v}`} className="scatter-grid-line scatter-grid-h"
-          style={{ bottom: `${((v/100)*70)+15}%` }}>
-          <span style={{ position:'absolute', left:-40, fontSize:10, color:'var(--text-muted)' }}>{v}</span>
+          style={{ bottom: `${((v / 100) * 70) + 15}%` }}>
+          <span style={{ position: 'absolute', left: -40, fontSize: 10, color: 'var(--text-muted)' }}>{v}</span>
         </div>
       ))}
-      {[20,40,60,80].map(v => (
+      {[20, 40, 60, 80].map(v => (
         <div key={`v${v}`} className="scatter-grid-line scatter-grid-v"
-          style={{ left: `${((v/100)*85)+10}%` }}>
-          <span style={{ position:'absolute', bottom:-20, fontSize:10, color:'var(--text-muted)' }}>{v}</span>
+          style={{ left: `${((v / 100) * 85) + 10}%` }}>
+          <span style={{ position: 'absolute', bottom: -20, fontSize: 10, color: 'var(--text-muted)' }}>{v}</span>
         </div>
       ))}
       {/* All candidates */}
       {matches.map((m) => {
         const hasInterest = m.interest_score !== null;
         const yPos = hasInterest
-          ? `${(((m.interest_score||0)/100)*70)+15}%`
+          ? `${(((m.interest_score || 0) / 100) * 70) + 15}%`
           : `${15 + Math.random() * 10}%`; // Scatter near bottom if no interest score
         return (
           <div key={m.candidate_id} className="scatter-dot tooltip-container"
             onClick={() => onSelect(m)}
             style={{
-              left: `${((m.match_score/100)*85)+10}%`,
+              left: `${((m.match_score / 100) * 85) + 10}%`,
               bottom: yPos,
               backgroundColor: m.avatar_color,
               opacity: hasInterest ? 1 : 0.35,
@@ -82,8 +82,9 @@ export default function Dashboard() {
   const [jdText, setJdText] = useState('');
   const [parsedJD, setParsedJD] = useState<ParsedJD | null>(null);
   const [matches, setMatches] = useState<MatchResult[]>([]);
-  const [stage, setStage] = useState<'init'|'loading'|'parsing'|'searching'|'scoring'|'explaining'|'done'>('init');
-  const [activeTab, setActiveTab] = useState<'table'|'chart'>('table');
+  const [stage, setStage] = useState<'init' | 'loading' | 'parsing' | 'searching' | 'scoring' | 'explaining' | 'done'>('init');
+  const [activeTab, setActiveTab] = useState<'table' | 'chart' | 'rejected'>('table');
+  const [rejectedIds, setRejectedIds] = useState<string[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<MatchResult | null>(null);
   const [outreachLoading, setOutreachLoading] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -102,7 +103,7 @@ export default function Dashboard() {
   const [filterAvailability, setFilterAvailability] = useState<string[]>([]);
   const [filterMinScore, setFilterMinScore] = useState(0);
   const [filterSkill, setFilterSkill] = useState('');
-  const [sortBy, setSortBy] = useState<'match'|'interest'|'combined'|'experience'>('match');
+  const [sortBy, setSortBy] = useState<'match' | 'interest' | 'combined' | 'experience'>('match');
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
 
@@ -119,6 +120,7 @@ export default function Dashboard() {
         setMatches(saved.matches || []);
         setDataSource(saved.dataSource || 'github');
         setEmailDrafts(saved.emailDrafts || {});
+        setRejectedIds(saved.rejectedIds || []);
         setStage('done');
         return;
       } catch { /* fall through to normal load */ }
@@ -127,7 +129,7 @@ export default function Dashboard() {
     if (!jd) { router.push('/'); return; }
     setJdText(jd);
     runPipeline(jd);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const advanceStage = (next: typeof stage) => {
@@ -177,8 +179,10 @@ export default function Dashboard() {
       setMatches(prev => {
         const updated = prev.map(m => {
           if (m.candidate_id !== candidate.candidate_id) return m;
-          return { ...m, conversation: data.conversation, interest_score: data.interest_score,
-            interest_breakdown: data.interest_breakdown, combined_score: data.combined_score };
+          return {
+            ...m, conversation: data.conversation, interest_score: data.interest_score,
+            interest_breakdown: data.interest_breakdown, combined_score: data.combined_score
+          };
         });
         updated.sort((a, b) => (b.combined_score ?? b.match_score) - (a.combined_score ?? a.match_score));
         updated.forEach((m, i) => { m.rank = i + 1; });
@@ -224,11 +228,12 @@ export default function Dashboard() {
 
   // All hooks must be called before any early returns (React Rules of Hooks)
   const outreachedCount = matches.filter(m => m.interest_score !== null).length;
-  const avgMatch = matches.length ? Math.round(matches.reduce((s,m) => s + m.match_score, 0) / matches.length) : 0;
+  const avgMatch = matches.length ? Math.round(matches.reduce((s, m) => s + m.match_score, 0) / matches.length) : 0;
   const topCombined = matches.find(m => m.combined_score !== null)?.combined_score || 0;
 
   const filteredMatches = useMemo(() => {
-    let result = [...matches];
+    let result = matches.filter(m => activeTab === 'rejected' ? rejectedIds.includes(m.candidate_id) : !rejectedIds.includes(m.candidate_id));
+
     if (filterLocation.trim()) {
       const loc = filterLocation.toLowerCase();
       result = result.filter(m => m.candidate_location.toLowerCase().includes(loc));
@@ -248,7 +253,7 @@ export default function Dashboard() {
       return b.match_score - a.match_score;
     });
     return result;
-  }, [matches, filterLocation, filterMinExp, filterMaxExp, filterAvailability, filterMinScore, filterSkill, sortBy]);
+  }, [matches, filterLocation, filterMinExp, filterMaxExp, filterAvailability, filterMinScore, filterSkill, sortBy, rejectedIds, activeTab]);
 
   const activeFiltersCount = [filterLocation, filterSkill].filter(Boolean).length +
     (filterMinExp > 0 ? 1 : 0) + (filterMaxExp < 20 ? 1 : 0) +
@@ -264,14 +269,19 @@ export default function Dashboard() {
   };
   const compareCandidates = compareIds.map(id => matches.find(m => m.candidate_id === id)).filter(Boolean) as MatchResult[];
 
+  const toggleReject = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setRejectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   const saveSession = () => {
-    const session = { jdText, parsedJD, matches, dataSource, emailDrafts, savedAt: new Date().toISOString() };
+    const session = { jdText, parsedJD, matches, dataSource, emailDrafts, rejectedIds, savedAt: new Date().toISOString() };
     localStorage.setItem('talentscout_session', JSON.stringify(session));
     alert('✅ Session saved! You can resume this shortlist later.');
   };
 
   const exportCSV = () => {
-    const headers = ['Rank','Name','Title','Experience (yr)','Location','Availability','Match Score','Interest Score','Combined Score','Matching Skills','Missing Skills','GitHub URL','LinkedIn URL','Source'];
+    const headers = ['Rank', 'Name', 'Title', 'Experience (yr)', 'Location', 'Availability', 'Match Score', 'Interest Score', 'Combined Score', 'Matching Skills', 'Missing Skills', 'GitHub URL', 'LinkedIn URL', 'Source'];
     const rows = filteredMatches.map(m => [
       m.rank, m.candidate_name, m.candidate_title, m.candidate_experience,
       m.candidate_location, m.candidate_availability,
@@ -283,7 +293,7 @@ export default function Dashboard() {
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url;
-    a.download = `talentscout_shortlist_${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `talentscout_shortlist_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click(); URL.revokeObjectURL(url);
   };
 
@@ -337,7 +347,7 @@ export default function Dashboard() {
                     </div>
                     <div style={{ minWidth: 60, textAlign: 'right' }}>
                       {isDone && <span style={{ color: 'var(--success)', fontWeight: 700, fontSize: 18 }}>✓</span>}
-                      {isDone && time && <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{(time/1000).toFixed(1)}s</div>}
+                      {isDone && time && <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{(time / 1000).toFixed(1)}s</div>}
                       {isActive && <span className="spinner" style={{ width: 20, height: 20 }} />}
                     </div>
                   </div>
@@ -514,9 +524,9 @@ export default function Dashboard() {
               <div style={{ minWidth: 150 }}>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6 }}>Details</div>
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                  📍 {parsedJD.location}<br/>
-                  💼 {parsedJD.experience_min}{parsedJD.experience_max ? `–${parsedJD.experience_max}` : '+'} years<br/>
-                  🎯 {parsedJD.culture_keywords.slice(0,3).join(', ')}
+                  📍 {parsedJD.location}<br />
+                  💼 {parsedJD.experience_min}{parsedJD.experience_max ? `–${parsedJD.experience_max}` : '+'} years<br />
+                  🎯 {parsedJD.culture_keywords.slice(0, 3).join(', ')}
                 </div>
               </div>
             </div>
@@ -525,7 +535,7 @@ export default function Dashboard() {
 
         {/* Stats */}
         <div className="stats-grid animate-in animate-in-delay-1">
-          <div className="stat-card"><div className="stat-value">{filteredMatches.length}<span style={{fontSize:14,color:'var(--text-muted)'}}>/{matches.length}</span></div><div className="stat-label">Candidates Shown</div></div>
+          <div className="stat-card"><div className="stat-value">{filteredMatches.length}<span style={{ fontSize: 14, color: 'var(--text-muted)' }}>/{matches.length}</span></div><div className="stat-label">Candidates Shown</div></div>
           <div className="stat-card"><div className="stat-value">{avgMatch}</div><div className="stat-label">Avg Match Score</div></div>
           <div className="stat-card"><div className="stat-value">{outreachedCount}</div><div className="stat-label">Outreach Simulated</div></div>
           <div className="stat-card"><div className="stat-value">{topCombined || '—'}</div><div className="stat-label">Top Combined Score</div></div>
@@ -535,6 +545,9 @@ export default function Dashboard() {
         <div className="tabs">
           <button className={`tab ${activeTab === 'table' ? 'active' : ''}`} onClick={() => setActiveTab('table')}>📋 Table View</button>
           <button className={`tab ${activeTab === 'chart' ? 'active' : ''}`} onClick={() => setActiveTab('chart')}>📈 Scatter Plot</button>
+          <button className={`tab ${activeTab === 'rejected' ? 'active' : ''}`} onClick={() => setActiveTab('rejected')}>
+            🗑️ Passed Candidates {rejectedIds.length > 0 && `(${rejectedIds.length})`}
+          </button>
         </div>
 
         {/* Scatter Plot */}
@@ -550,12 +563,12 @@ export default function Dashboard() {
         )}
 
         {/* Table */}
-        {activeTab === 'table' && (
+        {['table', 'rejected'].includes(activeTab) && (
           <div className="table-wrapper animate-in animate-in-delay-2">
             <table className="table">
               <thead>
                 <tr>
-                  <th style={{width:32}}></th><th>#</th><th>Candidate</th><th>Skills Match</th>
+                  <th style={{ width: 32 }}></th><th>#</th><th>Candidate</th><th>Skills Match</th>
                   <th>Match</th><th>Interest</th><th>Combined</th><th>Actions</th>
                 </tr>
               </thead>
@@ -628,17 +641,21 @@ export default function Dashboard() {
                         <span className="badge badge-neutral">—</span>}
                     </td>
                     <td onClick={e => e.stopPropagation()}>
-                      {m.interest_score === null ? (
+                      {m.interest_score === null && activeTab !== 'rejected' && (
                         <button className="btn btn-primary btn-sm"
                           disabled={outreachLoading === m.candidate_id}
-                          onClick={() => runOutreach(m)}>
+                          onClick={(e) => { e.stopPropagation(); runOutreach(m); }}>
                           {outreachLoading === m.candidate_id ? <><span className="spinner" /> Running...</> : '💬 Outreach'}
                         </button>
-                      ) : (
+                      )}
+                      {m.interest_score !== null && activeTab !== 'rejected' && (
                         <button className="btn btn-secondary btn-sm" onClick={() => setSelectedCandidate(m)}>
                           View Details
                         </button>
                       )}
+                      <button className="btn btn-secondary btn-sm" onClick={(e) => toggleReject(m.candidate_id, e)} title={activeTab === 'rejected' ? "Restore Candidate" : "Pass / Reject"}>
+                        {activeTab === 'rejected' ? '↩️ Restore' : '✅ Pass'}
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -688,7 +705,12 @@ export default function Dashboard() {
                     </p>
                   </div>
                 </div>
-                <button className="btn btn-ghost" onClick={() => setSelectedCandidate(null)}>✕</button>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <button className="btn btn-secondary btn-sm" onClick={() => { toggleReject(selectedCandidate.candidate_id); setSelectedCandidate(null); }}>
+                    {rejectedIds.includes(selectedCandidate.candidate_id) ? '↩️ Restore' : '✅ Pass'}
+                  </button>
+                  <button className="btn btn-ghost" onClick={() => setSelectedCandidate(null)}>✕</button>
+                </div>
               </div>
 
               {/* Scores */}
@@ -721,7 +743,7 @@ export default function Dashboard() {
                     selectedCandidate.candidate_availability === 'open' ? 'var(--warning)' : 'var(--text-muted)',
                 }}>
                   {selectedCandidate.candidate_availability === 'actively_looking' ? '🟢 Actively Looking' :
-                   selectedCandidate.candidate_availability === 'open' ? '🟡 Open to Opportunities' : '⚪ Passive'}
+                    selectedCandidate.candidate_availability === 'open' ? '🟡 Open to Opportunities' : '⚪ Passive'}
                 </span>
                 {(selectedCandidate as any).repos_count != null && (
                   <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>📦 {(selectedCandidate as any).repos_count} repos</span>
@@ -764,8 +786,10 @@ export default function Dashboard() {
                   <div style={{ fontSize: 12, color: 'var(--accent-light)', textTransform: 'uppercase', marginBottom: 10 }}>📊 Why This Rank?</div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 12 }}>
                     {parsedJD.required_skills.map((skill, si) => (
-                      <div key={si} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 8px', borderRadius: 4,
-                        background: selectedCandidate.matching_skills.some(ms => ms.toLowerCase() === skill.toLowerCase()) ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)' }}>
+                      <div key={si} style={{
+                        display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 8px', borderRadius: 4,
+                        background: selectedCandidate.matching_skills.some(ms => ms.toLowerCase() === skill.toLowerCase()) ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)'
+                      }}>
                         <span>{skill}</span>
                         <span>{selectedCandidate.matching_skills.some(ms => ms.toLowerCase() === skill.toLowerCase()) ? '✅' : '❌'}</span>
                       </div>
@@ -810,10 +834,10 @@ export default function Dashboard() {
                     return (
                       <div key={key} style={{ marginBottom: 8 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                          <span style={{ textTransform: 'capitalize', color: 'var(--text-secondary)' }}>{key.replace('_',' ')}</span>
+                          <span style={{ textTransform: 'capitalize', color: 'var(--text-secondary)' }}>{key.replace('_', ' ')}</span>
                           <span style={{ fontWeight: 600 }}>{val}/25</span>
                         </div>
-                        <div className="progress-bar"><div className="progress-fill" style={{ width: `${(val/25)*100}%` }} /></div>
+                        <div className="progress-bar"><div className="progress-fill" style={{ width: `${(val / 25) * 100}%` }} /></div>
                       </div>
                     );
                   })}
@@ -871,7 +895,7 @@ export default function Dashboard() {
                               {msg.content}
                             </div>
                             <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, textAlign: msg.role === 'recruiter' ? 'right' : 'left' }}>
-                              {msg.role === 'recruiter' ? '🧑‍💼 Recruiter' : `💬 ${selectedCandidate.candidate_name}`} · Turn {Math.floor(i/2) + 1}
+                              {msg.role === 'recruiter' ? '🧑‍💼 Recruiter' : `💬 ${selectedCandidate.candidate_name}`} · Turn {Math.floor(i / 2) + 1}
                             </div>
                           </div>
                         </div>
