@@ -10,7 +10,7 @@ export default function Architecture() {
             <p className="section-subtitle">How TalentScout AI discovers, matches, and engages candidates</p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <a href="YOUR_DEMO_URL_HERE" target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm">🌐 Live Demo</a>
+            <a href="https://talent-scout-agent-rho.vercel.app" target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm">🌐 Live Demo</a>
             <a href="https://github.com/Rewat7143/talent-scout-agent" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-sm">📦 GitHub Repo</a>
           </div>
         </div>
