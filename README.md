@@ -135,9 +135,11 @@ app/
 
 ## 🌐 Live Demo
 
-**Demo URL:** `https://talent-scout-agent-rho.vercel.app`
+**Demo URL:** https://talent-scout-agent-rho.vercel.app  
 
-**Demo Video:** `YOUR_VIDEO_URL_HERE`
+## 🎬 Demo Video
+
+[![Watch Demo](https://img.youtube.com/vi/FhAC4oGpGYM/0.jpg)](https://youtu.be/FhAC4oGpGYM)
 
 ---
 
